@@ -24,7 +24,7 @@ __main__.HighSensitivityModel = HighSensitivityModel
 # Load the AI Brain into the server's memory
 print("Loading AI Brain...")
 try:
-    ai_brain = joblib.load('hypertension_watch_brain.pkl')
+    ai_brain = joblib.load('clinical_hypertension_watch_brain.pkl')
     print("✅ Brain successfully loaded!")
 except Exception as e:
     print(f"❌ Error loading model: {e}")
