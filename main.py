@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import joblib
 import numpy as np
-import __main__  # 🚨 Added this to fix the Colab naming issue!
+import __main__  # Fix for Colab naming issue
 
 # 1. Initialize the Server
 app = FastAPI(title="Eldercare Hypertension API")
@@ -17,8 +17,7 @@ class HighSensitivityModel:
         probs = self.model.predict_proba(X)[:, 0]
         return np.where(probs >= self.threshold, 'At-Risk', 'Normal')
 
-# 🚨 THE MAGIC FIX 🚨
-# Tell the server: "If the .pkl file asks for __main__.HighSensitivityModel, use the class right above this!"
+# Tell the server to use this exact class
 __main__.HighSensitivityModel = HighSensitivityModel
 
 # Load the AI Brain into the server's memory
@@ -37,9 +36,13 @@ class WatchData(BaseModel):
     RMSSD: float
 
 # 4. Create the API Endpoint (The "Listening" Port)
-# 4. Create the API Endpoint (The "Listening" Port)
 @app.post("/predict_vitals")
 def predict_blood_pressure(data: WatchData):
+    
+    # 🚨 LIVE LOGGING: Print incoming data to the Render terminal!
+    print(f"📡 WATCH INCOMING! HR: {data.HR} | RMSSD: {data.RMSSD} | Age: {data.Age}")
+
+    # Convert real Age to the PhysioNet Age Group
     if data.Age >= 85:
         age_group = 15
     elif data.Age >= 55:
@@ -47,6 +50,7 @@ def predict_blood_pressure(data: WatchData):
     else:
         age_group = 8
 
+    # Calculate the engineered Autonomic Ratio
     if data.RMSSD == 0:
         autonomic_ratio = 0 
     else:
@@ -54,25 +58,23 @@ def predict_blood_pressure(data: WatchData):
 
     features = np.array([[age_group, data.BMI, data.HR, data.RMSSD, autonomic_ratio]])
 
-    # THE MEDICAL GUARDRAIL
+    # 🚨 THE MEDICAL GUARDRAIL 🚨
     # If the watch sends extreme, deadly numbers, bypass the AI completely.
     if data.RMSSD < 10.0 or data.HR > 130.0:
+        print("⚠️ GUARDRAIL TRIGGERED: Extreme Vitals Detected!")
         return {
             "status": "success",
             "medical_assessment": "At-Risk (CRITICAL)",
             "ai_suspicion_level": "100.00% (Manual Override)"
         }
     
-    # Otherwise, if the numbers are normal, ask the AI to do its math...
-    prediction = ai_brain.predict(features)[0]
-    # ... (rest of your code)
-
-    # 1. Get the final text prediction (Normal or At-Risk)
+    # Otherwise, if the numbers are normal, ask the AI to do its math
     prediction = ai_brain.predict(features)[0]
 
-    # 2. 🚨 MIND READER: Get the exact percentage of suspicion! 🚨
-    # We ask the inner model for the probability of Class 0 ('At-Risk')
+    # Get the exact percentage of suspicion
     suspicion_percentage = ai_brain.model.predict_proba(features)[0][0] * 100
+
+    print(f"🧠 AI ASSESSMENT: {prediction} ({suspicion_percentage:.2f}%)")
 
     return {
         "status": "success",
