@@ -54,6 +54,19 @@ def predict_blood_pressure(data: WatchData):
 
     features = np.array([[age_group, data.BMI, data.HR, data.RMSSD, autonomic_ratio]])
 
+    # THE MEDICAL GUARDRAIL
+    # If the watch sends extreme, deadly numbers, bypass the AI completely.
+    if data.RMSSD < 10.0 or data.HR > 130.0:
+        return {
+            "status": "success",
+            "medical_assessment": "At-Risk (CRITICAL)",
+            "ai_suspicion_level": "100.00% (Manual Override)"
+        }
+    
+    # Otherwise, if the numbers are normal, ask the AI to do its math...
+    prediction = ai_brain.predict(features)[0]
+    # ... (rest of your code)
+
     # 1. Get the final text prediction (Normal or At-Risk)
     prediction = ai_brain.predict(features)[0]
 
